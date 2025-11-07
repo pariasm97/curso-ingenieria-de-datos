@@ -21,7 +21,7 @@ Antes de iniciar, asegúrate de tener instaladas las siguientes herramientas en 
 | **Apache Airflow** | Orquestador de pipelines. | `pip install apache-airflow` |
 | **PostgreSQL** | Base de datos relacional para prácticas. | [Descargar PostgreSQL](https://www.postgresql.org/download/) |
 | **DBeaver o TablePlus** | Cliente SQL visual. | [DBeaver.io](https://dbeaver.io/) |
-| **DataGrio (Opcional)** | Cliente SQL visual(Preferido personal, si tiene un correo educativo puede aplicar a la licencia) | [DBeaver.io](https://dbeaver.io/) |
+| **DataGriop (Opcional)** | Cliente SQL visual (Preferido personal, si tiene un correo educativo puede aplicar a la licencia) | [DBeaver.io](https://www.jetbrains.com/datagrip/) |
 
 | **AWS CLI** | Acceso a servicios cloud. | `pip install awscli` |
 
