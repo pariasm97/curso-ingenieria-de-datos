@@ -10,9 +10,6 @@ _Control de versiones y clonación de repositorios._
 **PostgreSQL**  
 _Motor de base de datos relacional y de código abierto, robusto y confiable._
 
-**PSQL (CLI)**  
-_Cliente de línea de comandos para interactuar directamente con la base de datos._
-
 **Docker + Docker Compose**  
 _Ejecuta PostgreSQL y PGAdmin sin instalación manual._
 
@@ -36,7 +33,7 @@ cd curso-ingenieria-datos
 
 ---
 
-### 2️Iniciar PostgreSQL
+### 2Iniciar PostgreSQL
 
 #### **Opción A: Usando Docker (recomendada)**
 
@@ -44,7 +41,7 @@ cd curso-ingenieria-datos
 2. Copia el archivo de entorno de ejemplo:
 
 ```bash
-cp example.env .env
+cp env .env
 ```
 
 > El archivo `.env` contiene las credenciales de conexión a PostgreSQL y PGAdmin.
@@ -98,7 +95,7 @@ pg_restore -U <usuario> -d <nombre_db> -h <host> -p <puerto> data.dump
 
 ---
 
-### 3️Conectarse a PostgreSQL
+### 3Conectarse a PostgreSQL
 
 #### **Si usas PGAdmin (vía Docker)**
 

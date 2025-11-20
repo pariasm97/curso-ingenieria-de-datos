@@ -11,5 +11,6 @@ PGADMIN_DEFAULT_PASSWORD=postgres
 PGADMIN_PORT=5050
 
 # Nombres de contenedor (coinciden con la guía)
-POSTGRES_CONTAINER_NAME=my-postgres-container
-PGADMIN_CONTAINER_NAME=my-pgadmin
+POSTGRES_CONTAINER_NAME=my-postgres-olist
+PGADMIN_CONTAINER_NAME=my-pgadmin-olist
+docker compose ps
