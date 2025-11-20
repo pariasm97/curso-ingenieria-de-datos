@@ -1,10 +1,10 @@
 
 
-## 🧩 Herramientas a Instalar
+## Herramientas a Instalar
 
 Antes de iniciar, asegúrate de tener instaladas las siguientes herramientas en tu entorno local:
 
-### 🖥️ Entorno base
+### Entorno base
 
 | Herramienta | Descripción | Enlace de descarga |
 |--------------|--------------|-------------------|
@@ -12,7 +12,7 @@ Antes de iniciar, asegúrate de tener instaladas las siguientes herramientas en 
 | **Anaconda o Miniconda** | Administración de entornos y paquetes. | [https://www.anaconda.com/](https://www.anaconda.com/) |
 | **Visual Studio Code** | Editor de código recomendado. | [https://code.visualstudio.com/](https://code.visualstudio.com/) |
 
-### 🧱 Herramientas de ingeniería de datos
+### Herramientas de ingeniería de datos
 
 | Herramienta | Descripción | Instalación |
 |--------------|-------------|-------------|
@@ -27,7 +27,7 @@ Antes de iniciar, asegúrate de tener instaladas las siguientes herramientas en 
 
 ---
 
-## ⚙️ Prework: Preparación del Entorno
+## Prework: Preparación del Entorno
 
 Antes del primer módulo, realiza los siguientes pasos:
 
@@ -64,7 +64,7 @@ airflow version
 
 ---
 
-## 🧠 Sugerencias
+## Sugerencias
 
 - Crea un directorio llamado `~/Desktop/Git/curso-ingenieria-de-datos` para mantener el repositorio limpio.
 - Si usas **Windows**, ejecuta los comandos desde **Git Bash** o **Anaconda Prompt**.
