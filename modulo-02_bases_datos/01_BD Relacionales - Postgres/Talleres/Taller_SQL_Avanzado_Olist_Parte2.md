@@ -10,8 +10,6 @@ Este taller complementa la clase sobre:
 
 Trabaja en parejas o grupos pequeños. No hay una única solución para varias tareas, lo importante es la discusión.
 
-> Sugerencia docente: seleccionar un subconjunto de ejercicios según el tiempo disponible.
-
 ---
 
 ## 1. Transacciones, concurrencia y bloqueos

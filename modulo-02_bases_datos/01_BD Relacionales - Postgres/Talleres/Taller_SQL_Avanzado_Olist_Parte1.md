@@ -10,8 +10,6 @@ Este taller está diseñado para practicar los temas vistos en la clase de SQL a
 
 La idea es que trabajes en parejas o grupos pequeños. Las preguntas están organizadas por bloques; puedes saltar entre bloques según el ritmo de la clase.
 
-> Nota: no se incluyen soluciones en este archivo. Se recomienda tener un archivo separado con soluciones para uso del docente.
-
 ---
 
 ## 1. Bloque A – Repaso intermedio
@@ -225,18 +223,5 @@ Preguntas para discusión:
 
 - ¿Qué desventajas tiene `OFFSET` en tablas muy grandes?
 - ¿Por qué la paginación por cursor puede ser más eficiente y consistente?
-
----
-
-## 6. Recomendaciones para docentes
-
-- Se puede asignar un subconjunto de ejercicios por bloque según el tiempo disponible.
-- Es útil pedir que el estudiantado:
-  - Guarde las consultas en un archivo `.sql` versionado en Git.
-  - Escriba breves comentarios sobre qué aprendió en cada ejercicio.
-- Para una segunda sesión, se puede usar este mismo taller como base y pedir:
-  - Optimización de consultas.
-  - Comparación de planes de ejecución.
-  - Conversión de algunas consultas a vistas o CTEs reutilizables.
 
 ---
