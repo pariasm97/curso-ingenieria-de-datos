@@ -20,20 +20,10 @@ Al finalizar la sesión, el estudiante será capaz de:
 - Entender cómo las estadísticas del planner (`ANALYZE`) afectan la elección de planes.
 - Reconocer algunos anti-patrones típicos de consulta en escenarios analíticos.
 
----
-
-## 3. Agenda sugerida
-
-Introducción al rendimiento de consultas.
-Medir antes de optimizar: `EXPLAIN` / `EXPLAIN ANALYZE` con Olist.
-Índices, filtros selectivos y estadísticas (`ANALYZE`).
-Reescritura de consultas y `JOIN`.
-Paginación y patrones de uso real (reportes, dashboards).
-Checklist final y mini-retro.
 
 ---
 
-## 4. Bloque 1 – Introducción y ejemplo “lento”
+## 3. Bloque 1 – Introducción y ejemplo “lento”
 
 **Idea:** mostrar una consulta inocente pero costosa sobre Olist.
 
@@ -65,9 +55,9 @@ Preguntas para el grupo:
 
 ---
 
-## 5. Bloque 2 – Medir: `EXPLAIN` y `EXPLAIN ANALYZE`
+## 4. Bloque 2 – Medir: `EXPLAIN` y `EXPLAIN ANALYZE`
 
-### 5.1. Conceptos clave
+### 4.1. Conceptos clave
 
 Explicar brevemente:
 
