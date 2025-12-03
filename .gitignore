@@ -211,8 +211,8 @@ __marimo__/
 # Tabulares
 # *.csv
 *.tsv
-*.xls
-*.xlsx
+# *.xls
+# *.xlsx
 *.xlsm
 *.xlsb
 *.ods
