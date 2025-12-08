@@ -8,28 +8,42 @@ Cuando los clientes regresan, pagan el costo total del trabajo de reparación me
 
 ## Matriz de entidades
 
-| Entidades | TrabajosReparacion | Computadores | Items | Tecnicos | Clientes | Depositos | Facturas |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TrabajosReparacion** | | | | hacen | solicitan | | genera |
-| **Computadores** | | | | | tienen | | |
-| **Items** | | | | usan | | | |
-| **Tecnicos** | | | | | | | |
-| **Clientes** | | | | | | hacen | |
-| **Depositos** | | | | | | | |
-| **Facturas** | | | | | | | |
+| Entidad ↓ / → | Clientes | Computadores | TrabajosReparacion | Facturas | Depositos | Tecnicos | DetallesReparacion | Items |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Clientes** | - | Tienen | - | - | - | - | - | - |
+| **Computadores** | - | - | Repara | - | - | - | - | - |
+| **TrabajosReparacion** | - | - | - | Generan | Reciben | Hacen | Contienen | - |
+| **Facturas** | - | - | - | - | - | - | - | - |
+| **Depositos** | - | - | - | - | - | - | - | - |
+| **Tecnicos** | - | - | - | - | - | - | - | - |
+| **DetallesReparacion** | - | - | - | - | - | - | - | Usan |
+| **Items** | - | - | - | - | - | - | - | - |
 
 ## Matriz de cardinalidades
 
-| Entidades | TrabajosReparacion | Computadores | Items | Tecnicos | Clientes | Depositos | Facturas |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TrabajosReparacion** | | | | 1:1 | 1:1 | | 1:1 |
-| **Computadores** | | | | | 1:1 | | |
-| **Items** | | | | 0:1 | | | |
-| **Tecnicos** | 0:N | | 0:N | | | | |
-| **Clientes** | 0:N | 1:N | | | | 1:1 | |
-| **Depositos** | | | | | 1:1 | | |
-| **Facturas** | 1:1 | | | | | | |
+| Entidad (Origen) ↓ | Clientes | Computadores | TrabajosReparacion | Facturas | Depositos | Tecnicos | DetallesReparacion | Items |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Clientes** | - | 1:N | - | - | - | - | - | - |
+| **Computadores** | 1:1 | - | 1:1 | - | - | - | - | - |
+| **TrabajosReparacion** | - | 1:1 | - | 1:1 | 1:N | 1:1 | 0:N | - |
+| **Facturas** | - | - | 1:1 | - | - | - | - | - |
+| **Depositos** | - | - | 1:1 | - | - | - | - | - |
+| **Tecnicos** | - | - | 0:N | - | - | - | - | - |
+| **DetallesReparacion** | - | - | 1:1 | - | - | - | - | 1:1 |
+| **Items** | - | - | - | - | - | - | 0:N | - |
 
 ## Diagrama de entidad-relación
 
 [Visualizar en draw.io](https://drive.google.com/file/d/1SsrUNAMbSANE5LrLEpckvz9nw7VtEqSS/view?usp=sharing)
+
+## Argumentación sobre Gestión de Pagos
+
+Decisión: Relacionar la entidad Depositos con TrabajosReparacion (1:N) en lugar de relacionarlos con Facturas o Clientes. 
+
+Justificación: 
+
+1. El depósito ocurre desde el día 1, momento en el cual la Factura final no existe todavía. Relacionarlo con el Trabajo garantiza la integridad referencial desde el inicio.
+
+2. Al establecer una relación 1:N, permitimos que no solo se pueda realizar un depósito, sino que queda preparado para aceptar múltiples abonos si el cliente lo necesitara.
+
+
