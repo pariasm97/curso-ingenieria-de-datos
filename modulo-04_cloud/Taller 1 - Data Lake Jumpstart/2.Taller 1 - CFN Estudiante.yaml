@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Estudiante - Cliente Ligero (Usa Datos Centrales)
+
+Parameters:
+  StudentId:
+    Description: "JEMV" # "Tu usuario unico (ej: JEMV)"
+    Type: String
+    AllowedPattern: "[a-z0-9]+"
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  # --- BUCKETS DE SALIDA (Solo lo que genera el alumno) ---
+  # Se elimino el RawS3Bucket
+  
+  TransformedS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub "serverlessanalytics-${StudentId}-${AWS::AccountId}-transformed"
+  
+  AthenaS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub "serverlessanalytics-${StudentId}-${AWS::AccountId}-athena"
+
+  # --- INSTANCIA EC2 LIGERA ---
+  AnalyticsEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3a.medium
+      ImageId: !Ref LatestAmiId
+      
+      # Importamos red y seguridad
+      SubnetId: !ImportValue "Workshop-SubnetId"
+      SecurityGroupIds: [ !ImportValue "Workshop-SecurityGroupId" ]
+      IamInstanceProfile: !ImportValue "Workshop-InstanceProfileName"
+      
+      Tags:
+        - Key: Name
+          Value: !Sub "${StudentId}-Workstation"
+      
+      # UserData vacio o minimo, ya no necesitamos cargar datos!
+      UserData:
+        'Fn::Base64': 
+          !Sub 
+            - |
+              #!/bin/bash
+              echo "Bienvenido estudiante ${StudentId}."
+              echo "Tus datos estan listos en: s3://${SHARED_BUCKET}"
+            - SHARED_BUCKET: !ImportValue "Workshop-SharedRawBucket"
+
+Outputs:
+  MyTransformedBucket:
+    Value: !Ref TransformedS3Bucket
+  
+  # Le mostramos al estudiante donde estan los datos RAW para que configure su Crawler
+  SharedRawDataPath:
+    Description: "Usa esta ruta S3 para tu Glue Crawler"
+    Value: !Join [ "", [ "s3://", !ImportValue "Workshop-SharedRawBucket", "/nyc-taxi/" ] ]
+  
+  MyGlueRole:
+    Value: !ImportValue "Workshop-GlueRoleName"

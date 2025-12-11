@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Instructor - Red Compartida y DATOS CENTRALIZADOS
+
+Parameters:
+  EnvironmentName:
+      Type: String
+      Default: WorkshopShared
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  # --- 1. INFRAESTRUCTURA DE RED (VPC, IGW, Subnets...) ---
+  # (Resumido: Asume que aqui esta la misma VPC y Subnets del paso anterior)
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: { CidrBlock: "10.1.0.0/16", EnableDnsSupport: true, EnableDnsHostnames: true, Tags: [{Key: Name, Value: !Sub "${EnvironmentName}-VPC"}] }
+  InternetGateway: { Type: AWS::EC2::InternetGateway }
+  InternetGatewayAttachment: { Type: AWS::EC2::VPCGatewayAttachment, Properties: { InternetGatewayId: !Ref InternetGateway, VpcId: !Ref VPC } }
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: { VpcId: !Ref VPC, CidrBlock: "10.1.1.0/24", MapPublicIpOnLaunch: true, Tags: [{Key: Name, Value: !Sub "${EnvironmentName}-Subnet"}] }
+  PublicRouteTable: { Type: AWS::EC2::RouteTable, Properties: { VpcId: !Ref VPC } }
+  DefaultPublicRoute: { Type: AWS::EC2::Route, Properties: { RouteTableId: !Ref PublicRouteTable, DestinationCidrBlock: 0.0.0.0/0, GatewayId: !Ref InternetGateway } }
+  PublicSubnet1RouteTableAssociation: { Type: AWS::EC2::SubnetRouteTableAssociation, Properties: { RouteTableId: !Ref PublicRouteTable, SubnetId: !Ref PublicSubnet1 } }
+
+  # --- 2. BUCKET DE DATOS COMPARTIDOS (CENTRAL) ---
+  SharedRawBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub "workshop-shared-dataset-${AWS::AccountId}-${AWS::Region}"
+      # Bucket Policy para asegurar que cualquiera en la cuenta pueda leer
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # --- 3. ROLES (Actualizados para leer el Bucket Compartido) ---
+  SharedGlueRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${EnvironmentName}-GlueRole"
+      AssumeRolePolicyDocument: '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"glue.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess" # Da acceso a todo S3, incluido el compartido
+        - "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+
+  SharedEC2Role:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${EnvironmentName}-EC2Role"
+      AssumeRolePolicyDocument: '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+      ManagedPolicyArns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess", "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"]
+
+  SharedInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { InstanceProfileName: !Sub "${EnvironmentName}-InstanceProfile", Roles: [ !Ref SharedEC2Role ] }
+
+  SharedSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${EnvironmentName}-SG"
+      GroupDescription: "Shared SG"
+      VpcId: !Ref VPC
+      SecurityGroupIngress: [{ IpProtocol: tcp, FromPort: '22', ToPort: '22', CidrIp: 0.0.0.0/0 }]
+
+  # --- 4. DATA LOADER (Instancia efímera para cargar datos) ---
+  DataLoaderInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.medium
+      ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref SharedInstanceProfile
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds: [ !Ref SharedSecurityGroup ]
+      UserData:
+        'Fn::Base64': 
+          !Sub 
+            - |
+              #!/bin/bash
+              # Descargar datos al bucket CENTRAL una sola vez
+              echo "Iniciando carga de datos maestra..."
+              aws s3 cp s3://ws-assets-prod-iad-r-pdx-f3b3f9f1a7d6a3d0/276faf92-bffc-4843-8a8e-8078add48194/yellow-tripdata/yellow_tripdata_2020-01.csv s3://${CENTRAL_BUCKET}/nyc-taxi/yellow-tripdata/
+              aws s3 cp s3://ws-assets-prod-iad-r-pdx-f3b3f9f1a7d6a3d0/276faf92-bffc-4843-8a8e-8078add48194/yellow-tripdata/yellow_tripdata_2020-02.csv s3://${CENTRAL_BUCKET}/nyc-taxi/yellow-tripdata/
+              # ... (Agrega aqui el resto de archivos necesarios) ...
+              aws s3 cp s3://ws-assets-prod-iad-r-sfo-f61fc67057535f1b/276faf92-bffc-4843-8a8e-8078add48194/taxi_zone_lookup.csv s3://${CENTRAL_BUCKET}/nyc-taxi/taxi_zone_lookup/taxi_zone_lookup.csv
+              
+              echo "Carga finalizada. Apagando instancia para ahorrar dinero."
+              shutdown -h now
+            - CENTRAL_BUCKET: !Ref SharedRawBucket
+
+Outputs:
+  # EXPORTS
+  ExportedRawBucket:
+    Value: !Ref SharedRawBucket
+    Export: { Name: "Workshop-SharedRawBucket" } # <--- IMPORTANTE
+  ExportedSubnetId:
+    Value: !Ref PublicSubnet1
+    Export: { Name: "Workshop-SubnetId" }
+  ExportedSecurityGroup:
+    Value: !Ref SharedSecurityGroup
+    Export: { Name: "Workshop-SecurityGroupId" }
+  ExportedInstanceProfile:
+    Value: !Ref SharedInstanceProfile
+    Export: { Name: "Workshop-InstanceProfileName" }
+  ExportedGlueRole:
+    Value: !Ref SharedGlueRole
+    Export: { Name: "Workshop-GlueRoleName" }
+    
