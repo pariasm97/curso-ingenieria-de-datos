@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Guía  Despliegue de Aplicaciones Spark de Misión Crítica en Kubernetes (AWS EKS)
 
 Esta guía consolida las prácticas de ingeniería de datos moderna para ejecutar Apache Spark sobre Kubernetes, con un enfoque específico en la infraestructura de AWS. El objetivo es lograr un entorno estable, escalable y eficiente en costos, superando los desafíos comunes de la naturaleza efímera de los contenedores.
@@ -11,6 +12,23 @@ En una arquitectura de misión crítica, Kubernetes (K8s) actúa como el orquest
 * **Elasticidad Real:** Los recursos se crean solo cuando el trabajo de datos lo requiere y se destruyen al finalizar.
 * **Desacoplamiento:** El cómputo (EKS) está separado del almacenamiento (S3), permitiendo escalar independientemente.
 
+=======
+# Guía Definitiva: Despliegue de Aplicaciones Spark de Misión Crítica en Kubernetes (AWS EKS) – con soporte PySpark
+
+Esta guía consolida las mejores prácticas de ingeniería de datos moderna para ejecutar Apache Spark sobre Kubernetes, con un enfoque específico en la infraestructura de AWS. El objetivo es lograr un entorno estable, escalable y eficiente en costos, superando los desafíos comunes de la naturaleza efímera de los contenedores.
+
+---
+
+## 1. Cambio de Paradigma: De YARN a Kubernetes
+
+En una arquitectura de misión crítica, Kubernetes (K8s) actúa como el orquestador de recursos. A diferencia de los clústeres tradicionales (Hadoop/YARN), K8s ofrece:
+
+- **Aislamiento Total:** Cada aplicación de Spark tiene su propia versión de librerías, Python y Java. No hay conflictos de dependencias entre equipos.
+- **Elasticidad Real:** Los recursos se crean solo cuando el trabajo de datos lo requiere y se destruyen al finalizar.
+- **Desacoplamiento:** El cómputo (EKS) está separado del almacenamiento (S3), permitiendo escalar independientemente.
+
+---
+>>>>>>> 83afb43cfd1312ba54a730eaadf21ef1b5dd582b
 
 ## 2. Arquitectura de Referencia en AWS
 
@@ -23,6 +41,10 @@ Para producción, se recomienda la siguiente topología:
 5. **Registro de Imágenes:** Amazon ECR (Elastic Container Registry).
 6. **Seguridad:** IAM Roles for Service Accounts (IRSA).
 
+<<<<<<< HEAD
+=======
+---
+>>>>>>> 83afb43cfd1312ba54a730eaadf21ef1b5dd582b
 
 ## 3. Construcción de la Imagen Docker (Inmutabilidad) con soporte PySpark
 
