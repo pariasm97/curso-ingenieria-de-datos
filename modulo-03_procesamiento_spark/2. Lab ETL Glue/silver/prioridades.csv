@@ -1,0 +1,6 @@
+﻿Sucursal,codigo_corto,prioridad_reposicion,prioridad_retiro
+DEP_CENTRAL,DC,99,1
+TIENDA_NORTE,NOR,1,5
+TIENDA_SUR,SUR,2,4
+TIENDA_CENTRO,CEN,3,3
+TIENDA_OCCIDENTE,OCC,4,2
