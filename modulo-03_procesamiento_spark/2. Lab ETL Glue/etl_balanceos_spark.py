@@ -35,7 +35,8 @@ def parse_args():
     ap.add_argument("--sales_path", required=True)
     ap.add_argument("--stock_path", required=True)
     ap.add_argument("--prior_path", required=True)
-    ap.add_argument("--out_path", required=True, help="Prefijo/dir de salida (S3 o local)")
+    ap.add_argument("--out_path", required=True,
+                    help="Prefijo/dir de salida (S3 o local)")
     ap.add_argument("--window_days", type=int, default=15)
     ap.add_argument("--csv_sep_in", default=",")
     ap.add_argument("--csv_sep_out", default=";")
@@ -46,13 +47,17 @@ def parse_args():
 
 def main():
     args = parse_args()
-    spark = SparkSession.builder.appName("etl-balanceos-spark").getOrCreate()
+    spark = SparkSession.builder.appName(
+        "etl-balanceos-spark").master("local[4]").getOrCreate()
 
     run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    ventas = (spark.read.option("header", "true").option("sep", args.csv_sep_in).csv(args.sales_path))
-    stock  = (spark.read.option("header", "true").option("sep", args.csv_sep_in).csv(args.stock_path))
-    prior  = (spark.read.option("header", "true").option("sep", args.csv_sep_in).csv(args.prior_path))
+    ventas = (spark.read.option("header", "true").option(
+        "sep", args.csv_sep_in).csv(args.sales_path))
+    stock = (spark.read.option("header", "true").option(
+        "sep", args.csv_sep_in).csv(args.stock_path))
+    prior = (spark.read.option("header", "true").option(
+        "sep", args.csv_sep_in).csv(args.prior_path))
 
     ventas = (ventas
               .withColumn("ID interno", clean_id("ID interno"))
@@ -72,7 +77,8 @@ def main():
              .withColumn("prioridad_retiro", F.col("prioridad_retiro").cast("int")))
 
     # Ventana de días
-    ventas = ventas.filter(F.col("Fecha") >= F.date_sub(F.current_date(), args.window_days))
+    ventas = ventas.filter(F.col("Fecha") >= F.date_sub(
+        F.current_date(), args.window_days))
 
     # Demanda
     needs = (ventas
@@ -94,47 +100,52 @@ def main():
                .withColumn("prioridad_retiro", F.coalesce(F.col("prioridad_retiro"), F.lit(9999))))
 
     # Matching por acumulados (Spark puro)
-    w_need = Window.partitionBy("ID interno").orderBy("prioridad_reposicion", "Sucursal")
+    w_need = Window.partitionBy("ID interno").orderBy(
+        "prioridad_reposicion", "Sucursal")
     needs2 = (needs
               .withColumn("need_idx", F.row_number().over(w_need))
               .withColumn("need_qty", F.col("A_Reponer").cast("double")))
 
-    w_need_cum = Window.partitionBy("ID interno").orderBy("need_idx").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+    w_need_cum = Window.partitionBy("ID interno").orderBy(
+        "need_idx").rowsBetween(Window.unboundedPreceding, Window.currentRow)
     needs2 = (needs2
               .withColumn("need_cum", F.sum("need_qty").over(w_need_cum))
               .withColumn("need_cum_prev", F.coalesce(F.lag("need_cum", 1).over(Window.partitionBy("ID interno").orderBy("need_idx")), F.lit(0.0))))
 
-    w_src = Window.partitionBy("ID interno").orderBy("prioridad_retiro", "Sucursal")
+    w_src = Window.partitionBy("ID interno").orderBy(
+        "prioridad_retiro", "Sucursal")
     src2 = (sources
             .withColumn("src_idx", F.row_number().over(w_src))
             .withColumn("src_qty", F.col("Stock disponible para la venta").cast("double")))
 
-    w_src_cum = Window.partitionBy("ID interno").orderBy("src_idx").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+    w_src_cum = Window.partitionBy("ID interno").orderBy(
+        "src_idx").rowsBetween(Window.unboundedPreceding, Window.currentRow)
     src2 = (src2
             .withColumn("src_cum", F.sum("src_qty").over(w_src_cum))
             .withColumn("src_cum_prev", F.coalesce(F.lag("src_cum", 1).over(Window.partitionBy("ID interno").orderBy("src_idx")), F.lit(0.0))))
 
     pairs = (src2.select(
-                "ID interno",
-                F.col("Sucursal").alias("DESDE"),
-                "orig_corto",
-                "src_idx", "src_cum", "src_cum_prev"
-             )
-             .join(
-                needs2.select(
-                    "ID interno",
-                    F.col("Sucursal").alias("HACIA"),
-                    "Temporada",
-                    "dest_corto",
-                    "need_idx", "need_cum", "need_cum_prev"
-                ),
-                on="ID interno",
-                how="inner"
-             ))
+        "ID interno",
+        F.col("Sucursal").alias("DESDE"),
+        "orig_corto",
+        "src_idx", "src_cum", "src_cum_prev"
+    )
+        .join(
+        needs2.select(
+            "ID interno",
+            F.col("Sucursal").alias("HACIA"),
+            "Temporada",
+            "dest_corto",
+            "need_idx", "need_cum", "need_cum_prev"
+        ),
+        on="ID interno",
+        how="inner"
+    ))
 
     qty = F.greatest(
         F.lit(0.0),
-        F.least(F.col("src_cum"), F.col("need_cum")) - F.greatest(F.col("src_cum_prev"), F.col("need_cum_prev")),
+        F.least(F.col("src_cum"), F.col("need_cum")) -
+        F.greatest(F.col("src_cum_prev"), F.col("need_cum_prev")),
     )
 
     alloc = (pairs
@@ -143,7 +154,8 @@ def main():
              .filter(F.col("DESDE") != F.col("HACIA")))
 
     # ID EXT OT con timestamp y secuencia
-    w_seq = Window.orderBy("ID interno", "DESDE", "HACIA", "need_idx", "src_idx")
+    w_seq = Window.orderBy("ID interno", "DESDE",
+                           "HACIA", "need_idx", "src_idx")
     alloc = alloc.withColumn("seq", F.row_number().over(w_seq))
 
     alloc = alloc.withColumn(
@@ -161,13 +173,13 @@ def main():
     )
 
     out = (alloc.select(
-                F.col("Temporada").alias("NOTA"),
-                F.col("ID interno"),
-                "HACIA",
-                "DESDE",
-                F.col("CANTIDAD").cast("int"),
-                F.col("ID EXT OT"),
-            ))
+        F.col("Temporada").alias("NOTA"),
+        F.col("ID interno"),
+        "HACIA",
+        "DESDE",
+        F.col("CANTIDAD").cast("int"),
+        F.col("ID EXT OT"),
+    ))
 
     out_base = args.out_path.rstrip("/")
     tmp_out = f"{out_base}/_tmp_run_ts={run_ts}/"
@@ -200,13 +212,15 @@ def main():
 
         resp = s3.list_objects_v2(Bucket=bkt, Prefix=pref)
         objs = resp.get("Contents", [])
-        part = [o["Key"] for o in objs if o["Key"].endswith(".csv") and "part-" in o["Key"]]
+        part = [o["Key"] for o in objs if o["Key"].endswith(
+            ".csv") and "part-" in o["Key"]]
         if not part:
             raise RuntimeError(f"No encontré part-*.csv en s3://{bkt}/{pref}")
 
         src_key = part[0]
         out_bkt, out_key = parse_s3(final_out)
-        s3.copy_object(Bucket=out_bkt, Key=out_key, CopySource={"Bucket": bkt, "Key": src_key})
+        s3.copy_object(Bucket=out_bkt, Key=out_key, CopySource={
+                       "Bucket": bkt, "Key": src_key})
 
         # limpiar tmp
         del_objs = [{"Key": o["Key"]} for o in objs]
@@ -215,7 +229,9 @@ def main():
 
         print("OK. Archivo final:", final_out)
     else:
-        import os, glob, shutil
+        import os
+        import glob
+        import shutil
 
         tmp_local = tmp_out
         if tmp_local.startswith("file:"):
