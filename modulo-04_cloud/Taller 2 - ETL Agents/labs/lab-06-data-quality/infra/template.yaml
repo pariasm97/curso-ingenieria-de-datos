@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lab 06 - Glue ETL con calidad de datos (reporte y hard-fail)'
+
+Parameters:
+  StudentId:
+    Type: String
+  Env:
+    Type: String
+    Default: dev
+  DataBucketName:
+    Type: String
+  ArtifactsBucketName:
+    Type: String
+  GlueJobRoleArn:
+    Type: String
+  ScriptKey:
+    Type: String
+    Default: 'scripts/lab-06/glue_entity_raw_to_silver_with_quality.py'
+  QualityPrefix:
+    Type: String
+    Default: 'quality'
+
+Resources:
+  GlueJobRawToSilverQuality:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub 'etl-labs-${StudentId}-${Env}-raw-to-silver-quality'
+      Role: !Ref GlueJobRoleArn
+      GlueVersion: '4.0'
+      Command:
+        Name: glueetl
+        PythonVersion: '3'
+        ScriptLocation: !Sub 's3://${ArtifactsBucketName}/${ScriptKey}'
+      DefaultArguments:
+        --job-language: python
+        --enable-continuous-cloudwatch-log: 'true'
+        --enable-metrics: 'true'
+        --INPUT_PREFIX: !Sub 's3://${DataBucketName}/raw/source=synthetic/dt=2026-01-16'
+        --OUTPUT_PREFIX: !Sub 's3://${DataBucketName}/silver'
+        --QUALITY_OUTPUT_PREFIX: !Sub 's3://${DataBucketName}/${QualityPrefix}'
+        --ENTITY: 'orders'
+        --SOURCE: 'synthetic'
+        --DT: '2026-01-16'
+      WorkerType: 'G.1X'
+      NumberOfWorkers: 2
+
+Outputs:
+  GlueJobName:
+    Value: !Ref GlueJobRawToSilverQuality

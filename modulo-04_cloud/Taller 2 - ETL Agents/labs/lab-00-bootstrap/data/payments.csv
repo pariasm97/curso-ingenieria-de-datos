@@ -1,0 +1,5 @@
+payment_id,order_id,payment_method,paid_amount,currency,paid_ts
+P9001,O1001,card,120.50,COP,2026-01-10T10:13:00
+P9002,O1002,pse,80.00,COP,2026-01-10T11:46:00
+P9003,O1004,card,210.00,USD,2026-01-12T15:22:00
+P9004,O1006,cash,15.00,COP,2026-01-13T08:05:00

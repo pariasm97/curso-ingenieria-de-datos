@@ -1,0 +1,7 @@
+order_id,customer_id,order_ts,status,total_amount,currency
+O1001,C001,2026-01-10T10:12:00,delivered,120.50,COP
+O1002,C002,2026-01-10T11:45:00,shipped,80.00,COP
+O1003,C003,2026-01-11T09:05:00,canceled,55.30,COP
+O1004,C004,2026-01-12T15:20:00,delivered,210.00,USD
+O1005,C005,2026-01-12T16:10:00,processing,35.99,COP
+O1006,C001,2026-01-13T08:00:00,delivered,15.00,COP

@@ -27,6 +27,7 @@ df_palabras = df.select(
 df_conteo = df_palabras.groupBy(lower(col("palabra")).alias("palabra")) \
                        .count() \
                        .orderBy("count", ascending=False)
+                       
 
 # 4. Mostrar resultado
 print("--- Resultado DataFrame ---")

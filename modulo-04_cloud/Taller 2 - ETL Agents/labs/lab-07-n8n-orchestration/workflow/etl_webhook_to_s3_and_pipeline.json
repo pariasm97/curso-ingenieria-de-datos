@@ -1,0 +1,280 @@
+{
+  "name": "ETL Ingest - Webhook a S3 y StepFunctions",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "etl-ingest",
+        "responseMode": "lastNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "id": "1"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "data_bucket",
+              "value": "REPLACE_DATA_BUCKET"
+            },
+            {
+              "name": "artifacts",
+              "value": ""
+            },
+            {
+              "name": "source",
+              "value": "synthetic"
+            },
+            {
+              "name": "dt",
+              "value": "={{$json.body.dt || '2026-01-16'}}"
+            },
+            {
+              "name": "file_name",
+              "value": "={{$json.body.file_name || 'orders.csv'}}"
+            },
+            {
+              "name": "bridge_base_url",
+              "value": "REPLACE_FUNCTION_URL_BASE"
+            },
+            {
+              "name": "api_key",
+              "value": "REPLACE_API_KEY"
+            }
+          ]
+        }
+      },
+      "name": "Set Vars",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "id": "2"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "={{$json.data_bucket}}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "fileName": "={{'raw/source=' + $json.source + '/dt=' + $json.dt + '/' + $json.file_name}}"
+      },
+      "name": "AWS S3 Upload",
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ],
+      "id": "3",
+      "credentials": {
+        "aws": {
+          "id": "REPLACE_WITH_YOUR_AWS_CREDENTIAL",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$json.bridge_base_url + 'start'}}",
+        "method": "POST",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$json.api_key}}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonBody": "={\"input_prefix\": \"s3://" + $json.data_bucket + "/raw/source=" + $json.source + "/dt=" + $json.dt + "\", \"output_prefix\": \"s3://" + $json.data_bucket + "/silver\", \"source\": \"" + $json.source + "\", \"dt\": \"" + $json.dt + "\"}"
+      },
+      "name": "Start Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        900,
+        300
+      ],
+      "id": "4"
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        300
+      ],
+      "id": "5"
+    },
+    {
+      "parameters": {
+        "url": "={{$node['Set Vars'].json.bridge_base_url + 'status?executionArn=' + $node['Start Pipeline'].json.executionArn}}",
+        "method": "GET",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$node['Set Vars'].json.api_key}}"
+            }
+          ]
+        }
+      },
+      "name": "Get Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1360,
+        300
+      ],
+      "id": "6"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.status}}",
+              "operation": "notIn",
+              "value2": "SUCCEEDED,FAILED,TIMED_OUT,ABORTED"
+            }
+          ]
+        }
+      },
+      "name": "Still Running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        300
+      ],
+      "id": "7"
+    },
+    {
+      "parameters": {
+        "responseBody": "={{$json}}",
+        "responseCode": 200
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        420
+      ],
+      "id": "8"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Vars": {
+      "main": [
+        [
+          {
+            "node": "AWS S3 Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS S3 Upload": {
+      "main": [
+        [
+          {
+            "node": "Start Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Status": {
+      "main": [
+        [
+          {
+            "node": "Still Running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still Running?": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

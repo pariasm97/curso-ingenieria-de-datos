@@ -1,0 +1,6 @@
+customer_id,customer_name,city,country,created_at
+C001,Ana Gomez,Medellin,CO,2025-12-01
+C002,Carlos Perez,Bogota,CO,2025-12-03
+C003,Luisa Martinez,Cali,CO,2025-12-05
+C004,Sofia Lopez,Panama City,PA,2025-12-07
+C005,Juan Ruiz,Cartagena,CO,2025-12-10

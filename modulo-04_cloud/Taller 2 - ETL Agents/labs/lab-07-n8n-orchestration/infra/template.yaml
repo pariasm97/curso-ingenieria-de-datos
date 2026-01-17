@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lab 07 - Lambda bridge para n8n (Function URL: /start y /status)'
+
+Parameters:
+  StudentId:
+    Type: String
+  Env:
+    Type: String
+    Default: dev
+  ArtifactsBucketName:
+    Type: String
+  StateMachineArn:
+    Type: String
+  LambdaZipKey:
+    Type: String
+    Default: 'lambdas/lab-07/n8n_bridge_lambda.zip'
+  ApiKey:
+    Type: String
+    Default: ''
+
+Resources:
+  BridgeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'etl-labs-${StudentId}-${Env}-n8n-bridge-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: stepfunctions-control
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:DescribeExecution
+                Resource:
+                  - !Ref StateMachineArn
+
+  N8nBridgeLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'etl-labs-${StudentId}-${Env}-n8n-bridge'
+      Runtime: python3.11
+      Handler: n8n_bridge_lambda.lambda_handler
+      Role: !GetAtt BridgeLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref StateMachineArn
+          API_KEY: !Ref ApiKey
+      Code:
+        S3Bucket: !Ref ArtifactsBucketName
+        S3Key: !Ref LambdaZipKey
+
+  N8nBridgeFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt N8nBridgeLambda.Arn
+      AuthType: NONE
+
+  N8nBridgePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref N8nBridgeLambda
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+Outputs:
+  FunctionUrl:
+    Description: 'URL base. Use /start y /status'
+    Value: !GetAtt N8nBridgeFunctionUrl.FunctionUrl

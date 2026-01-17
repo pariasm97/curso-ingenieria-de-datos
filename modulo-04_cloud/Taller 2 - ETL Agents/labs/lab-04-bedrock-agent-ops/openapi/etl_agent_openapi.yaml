@@ -1,0 +1,68 @@
+openapi: 3.0.3
+info:
+  title: ETL Ops API
+  version: 1.0.0
+  description: API de acciones para operar un pipeline ETL (start y status)
+paths:
+  /pipeline/start:
+    post:
+      operationId: StartPipeline
+      summary: Iniciar ejecucion del pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - input_prefix
+                - output_prefix
+                - source
+                - dt
+              properties:
+                input_prefix:
+                  type: string
+                output_prefix:
+                  type: string
+                source:
+                  type: string
+                dt:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executionArn:
+                    type: string
+                  startDate:
+                    type: string
+  /pipeline/status:
+    get:
+      operationId: GetPipelineStatus
+      summary: Consultar estado de ejecucion
+      parameters:
+        - name: executionArn
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  executionArn:
+                    type: string
+                  output:
+                    type: string
+                  error:
+                    type: string

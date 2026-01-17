@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lab 01 - Glue Basics (Raw CSV a Silver Parquet particionado)'
+
+Parameters:
+  StudentId:
+    Type: String
+  Env:
+    Type: String
+    Default: dev
+  DataBucketName:
+    Type: String
+    Description: 'Output del Lab 00'
+  ArtifactsBucketName:
+    Type: String
+    Description: 'Output del Lab 00'
+  GlueJobRoleArn:
+    Type: String
+    Description: 'Output del Lab 00'
+  GlueVersion:
+    Type: String
+    Default: '4.0'
+  WorkerType:
+    Type: String
+    Default: 'G.1X'
+  NumberOfWorkers:
+    Type: Number
+    Default: 2
+  ScriptKey:
+    Type: String
+    Default: 'scripts/lab-01/glue_entity_raw_to_silver.py'
+
+Resources:
+  GlueJobRawToSilver:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub 'etl-labs-${StudentId}-${Env}-raw-to-silver'
+      Role: !Ref GlueJobRoleArn
+      GlueVersion: !Ref GlueVersion
+      Command:
+        Name: glueetl
+        PythonVersion: '3'
+        ScriptLocation: !Sub 's3://${ArtifactsBucketName}/${ScriptKey}'
+      DefaultArguments:
+        --job-language: python
+        --enable-continuous-cloudwatch-log: 'true'
+        --enable-metrics: 'true'
+        --INPUT_PREFIX: !Sub 's3://${DataBucketName}/raw/source=synthetic/dt=2026-01-16'
+        --OUTPUT_PREFIX: !Sub 's3://${DataBucketName}/silver'
+        --ENTITY: 'orders'
+        --SOURCE: 'synthetic'
+        --DT: '2026-01-16'
+      WorkerType: !Ref WorkerType
+      NumberOfWorkers: !Ref NumberOfWorkers
+
+Outputs:
+  GlueJobName:
+    Value: !Ref GlueJobRawToSilver
+    Description: 'Nombre del Glue Job'

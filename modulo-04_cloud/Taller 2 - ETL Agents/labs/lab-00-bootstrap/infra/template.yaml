@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lab 00 - Bootstrap para ETL (S3, Glue DB, Athena Workgroup, roles base)'
+
+Parameters:
+  StudentId:
+    Type: String
+    Description: 'Identificador corto (ej: JEMV). Solo letras y numeros.'
+    AllowedPattern: '^[A-Za-z0-9]+$'
+  Env:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
+
+Resources:
+  DataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub 'etl-labs-${StudentId}-${AWS::AccountId}-${Env}-data'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub 'etl-labs-${StudentId}-${AWS::AccountId}-${Env}-artifacts'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Sub 'etl_labs_${StudentId}_${Env}'
+        Description: !Sub 'Glue database para ETL labs (${StudentId}, ${Env})'
+
+  AthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: !Sub 'etl-labs-${StudentId}-${Env}'
+      Description: !Sub 'Workgroup para ETL labs (${StudentId}, ${Env})'
+      State: ENABLED
+      WorkGroupConfiguration:
+        EnforceWorkGroupConfiguration: true
+        PublishCloudWatchMetricsEnabled: true
+        ResultConfiguration:
+          OutputLocation: !Sub 's3://${ArtifactsBucket}/athena-results/'
+
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'etl-labs-${StudentId}-${Env}-glue-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - glue.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: s3-data-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: DataBucketRW
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt DataBucket.Arn
+              - Sid: DataBucketObjectsRW
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub '${DataBucket.Arn}/*'
+              - Sid: ArtifactsBucketRO
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt ArtifactsBucket.Arn
+                  - !Sub '${ArtifactsBucket.Arn}/*'
+
+  StepFunctionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'etl-labs-${StudentId}-${Env}-states-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: stepfunctions-glue
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:StartJobRun
+                  - glue:GetJobRun
+                  - glue:GetJob
+                  - glue:GetJobRuns
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: '*'
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'etl-labs-${StudentId}-${Env}-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: lambda-states
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:DescribeExecution
+                  - states:StopExecution
+                Resource: '*'
+
+Outputs:
+  DataBucketName:
+    Description: 'Bucket para datos (raw, silver, gold)'
+    Value: !Ref DataBucket
+  ArtifactsBucketName:
+    Description: 'Bucket para artifacts (scripts, athena results)'
+    Value: !Ref ArtifactsBucket
+  GlueDatabaseName:
+    Description: 'Nombre de la Glue Database'
+    Value: !Ref GlueDatabase
+  AthenaWorkGroupName:
+    Description: 'Nombre del Athena Workgroup'
+    Value: !Ref AthenaWorkGroup
+  GlueJobRoleArn:
+    Description: 'ARN del rol de Glue'
+    Value: !GetAtt GlueJobRole.Arn
+  StepFunctionsRoleArn:
+    Description: 'ARN del rol de Step Functions'
+    Value: !GetAtt StepFunctionsRole.Arn
+  LambdaRoleArn:
+    Description: 'ARN del rol de Lambda'
+    Value: !GetAtt LambdaRole.Arn

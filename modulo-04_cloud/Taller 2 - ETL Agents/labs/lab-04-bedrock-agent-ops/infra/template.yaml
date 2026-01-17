@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lab 04 - Lambda fulfillment para Bedrock Agent (Start y Status de Step Functions)'
+
+Parameters:
+  StudentId:
+    Type: String
+  Env:
+    Type: String
+    Default: dev
+  ArtifactsBucketName:
+    Type: String
+    Description: 'Output del Lab 00'
+  StateMachineArn:
+    Type: String
+    Description: 'Output del Lab 03'
+  LambdaZipKey:
+    Type: String
+    Default: 'lambdas/lab-04/bedrock_agent_fulfillment.zip'
+
+Resources:
+  BedrockAgentLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'etl-labs-${StudentId}-${Env}-bedrock-agent-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: stepfunctions-control
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:DescribeExecution
+                  - states:StopExecution
+                Resource:
+                  - !Ref StateMachineArn
+
+  BedrockAgentFulfillment:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'etl-labs-${StudentId}-${Env}-bedrock-agent-fulfillment'
+      Runtime: python3.11
+      Handler: bedrock_agent_fulfillment.lambda_handler
+      Role: !GetAtt BedrockAgentLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref StateMachineArn
+      Code:
+        S3Bucket: !Ref ArtifactsBucketName
+        S3Key: !Ref LambdaZipKey
+
+Outputs:
+  FulfillmentLambdaArn:
+    Description: 'ARN de la Lambda para Action Group'
+    Value: !GetAtt BedrockAgentFulfillment.Arn

@@ -1,0 +1,73 @@
+{
+  "Comment": "ETL pipeline: raw to silver for customers, orders, payments using a single Glue job",
+  "StartAt": "RunEntities",
+  "States": {
+    "RunEntities": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "RunCustomers",
+          "States": {
+            "RunCustomers": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${GlueJobName}",
+                "Arguments": {
+                  "--INPUT_PREFIX.$": "$.input_prefix",
+                  "--OUTPUT_PREFIX.$": "$.output_prefix",
+                  "--SOURCE.$": "$.source",
+                  "--DT.$": "$.dt",
+                  "--ENTITY": "customers"
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RunOrders",
+          "States": {
+            "RunOrders": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${GlueJobName}",
+                "Arguments": {
+                  "--INPUT_PREFIX.$": "$.input_prefix",
+                  "--OUTPUT_PREFIX.$": "$.output_prefix",
+                  "--SOURCE.$": "$.source",
+                  "--DT.$": "$.dt",
+                  "--ENTITY": "orders"
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RunPayments",
+          "States": {
+            "RunPayments": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${GlueJobName}",
+                "Arguments": {
+                  "--INPUT_PREFIX.$": "$.input_prefix",
+                  "--OUTPUT_PREFIX.$": "$.output_prefix",
+                  "--SOURCE.$": "$.source",
+                  "--DT.$": "$.dt",
+                  "--ENTITY": "payments"
+                }
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.glue_results",
+      "End": true
+    }
+  }
+}
