@@ -1,8 +1,8 @@
-# Actividad Práctica: Arquitecturas de Vludyrt en AWS
-## Despliegue de EMR, EC2 y Kubernetes con Escenarios Diferenciados
+# Actividad Práctica: Arquitecturas de Big Data en AWS
+## Despliegue de EMR, EC2, Kubernetes y Serverless
 
 ### Objetivo General
-Comprender el impacto de las decisiones de arquitectura (costo, rendimiento, resiliencia y modernización) mediante la experimentación práctica con configuraciones variadas de AWS EMR y EKS.
+Comprender el impacto de las decisiones de arquitectura (costo, rendimiento, resiliencia y modernización) mediante la experimentación práctica con configuraciones variadas de AWS EMR, EKS y Serverless.
 
 ---
 
@@ -51,21 +51,21 @@ Comprender el impacto de las decisiones de arquitectura (costo, rendimiento, res
 ---
 
 ### Equipo 4: "Cloud Native" (EMR on EKS)
-**Misión:** Desacoplar el cómputo del servidor utilizando contenedores.
+**Misión:** Desacoplar el cómputo del servidor utilizando contenedores gestionados por EMR.
 
-* **Infraestructura:** Amazon EKS (Kubernetes) + EMR on EKS.
+* **Infraestructura:** Amazon EKS (Kubernetes) + EMR on EKS Virtual Cluster.
 * **Despliegue:**
-    * No usar instancias EC2 directas para EMR.
-    * Enviar trabajos como *Job Runs* virtualizados.
+    * No usan consola de EC2.
+    * Envían trabajos mediante `aws emr-containers start-job-run`.
 * **Experimento:**
     1.  Lanzar 5 trabajos pequeños de Spark simultáneamente.
-    2.  Medir el tiempo de inicio de los Pods vs. el tiempo de arranque del clúster EC2 del Equipo 1.
+    2.  Observar cómo EMR crea y destruye Pods automáticamente.
 * **Pregunta:** ¿Cómo cambia la gestión de recursos cuando Spark corre como un Pod de Kubernetes en lugar de un servidor dedicado?
 
 ---
 
 ### Equipo 5: "Automatización" (Bootstrap & Auto-Scaling)
-**Misión:** Crear un clúster elástico y autoconfigurable.
+**Misión:** Crear un clúster tradicional que "respire" (crezca y se encoja).
 
 * **Infraestructura:** AWS EMR sobre EC2.
 * **Personalización:**
@@ -78,12 +78,42 @@ Comprender el impacto de las decisiones de arquitectura (costo, rendimiento, res
 
 ---
 
-### Tabla Comparativa de Resultados (Para completar en clase)
+### Equipo 6: EMR Serverless
+**Misión:** Ejecutar trabajos  sin configurar ni un solo servidor.
 
-| Equipo | Arquitectura | Tiempo Despliegue | Costo ($/h) | Resiliencia | Persistencia Datos |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1. Spot** | EMR + Spot Fleet | Lento | Bajo | Media | Alta (S3) |
-| **2. Perf.** | EMR + HDFS | Medio | Alto | Baja | Baja (Local) |
-| **3. ARM** | EMR + Graviton | Medio | Medio-Bajo | Media | Alta (S3) |
-| **4. K8s** | EMR on EKS | Muy Rápido | Variable | Alta | Alta (S3) |
-| **5. Auto** | EMR + Scaling | Lento (inicio) | Variable | Alta | Alta (S3) |
+* **Infraestructura:** AWS EMR Serverless (Applications).
+* **Configuración:**
+    * Crear una "Application" de Spark con límites de pre-inicialización.
+    * No hay instancias EC2, no hay SSH, no hay Bootstrap Actions tradicionales.
+* **Experimento:**
+    1.  Enviar el mismo trabajo que el Equipo 1.
+    2.  Comparar el tiempo de "arranque en frío" (Cold Start) vs el Equipo 4.
+* **Pregunta:** ¿Es realmente más fácil? ¿Qué pierdes al no tener acceso al sistema operativo (SSH)?
+
+---
+
+### Equipo 7: "Los Artesanos" (DIY Spark on Kubernetes)
+**Misión:** Montar Spark "a mano" en Kubernetes sin la ayuda de EMR.
+
+* **Infraestructura:** Amazon EKS (Kubernetes) estándar.
+* **Despliegue:**
+    * Instalar el **Spark Operator** de Google o usar `spark-submit` nativo con imagen Docker propia.
+    * No usar las APIs de EMR.
+* **Experimento:**
+    1.  Construir una imagen de Docker con PySpark y sus dependencias.
+    2.  Desplegarla manualmente en el clúster.
+* **Pregunta:** ¿Cuánto más difícil fue configurar esto comparado con el Equipo 4 (EMR on EKS)? ¿Qué ventaja tiene controlar tu propia imagen de Docker?
+
+---
+
+### Tabla Comparativa Final (Para completar en clase)
+
+| Equipo | Arquitectura | Tiempo Despliegue | Nivel de Control (OS) | Complejidad Gestión |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Spot** | EMR + EC2 Spot | Lento | Alto (Root) | Media |
+| **2. Perf.** | EMR + EC2 HDFS | Medio | Alto (Root) | Media |
+| **3. ARM** | EMR + Graviton | Medio | Alto (Root) | Media |
+| **4. EKS** | EMR on EKS | Rápido | Medio (Container) | Alta (K8s) |
+| **5. Auto** | EMR Scalable | Lento | Alto (Root) | Alta |
+| **6. Srvls** | EMR Serverless | **Inmediato** | **Nulo** | **Muy Baja** |
+| **7. DIY** | K8s Vanilla | Rápido | Alto (Docker) | **Muy Alta** |
