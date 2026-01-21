@@ -1,10 +1,10 @@
-import sys
+# import sys
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import sum as _sum
 
 if __name__ == "__main__":
-    input_path = sys.argv[1]
-    output_path = sys.argv[2]
+    input_path = "s3://etl-cluster/data/transacciones_retail_large.csv"
+    output_path = "s3://etl-cluster/data/output/"
 
     spark = SparkSession.builder.appName("retail-etl").getOrCreate()
 
@@ -14,7 +14,7 @@ if __name__ == "__main__":
           .csv(input_path))
 
     result = (df.groupBy("product_id")
-                .agg(_sum("amount").alias("total_amount")))
+                .agg(_sum("cantidad").alias("total_cantidadt")))
 
     (result.write.mode("overwrite").parquet(output_path))
     spark.stop()
