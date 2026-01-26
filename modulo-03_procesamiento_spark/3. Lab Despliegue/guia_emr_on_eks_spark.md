@@ -1,12 +1,12 @@
 # Guía detallada: Amazon EMR on EKS (Spark en Kubernetes con runtime de EMR)
 
-Esta guía explica, paso a paso, cómo **desplegar y ejecutar Apache Spark en Amazon EKS usando Amazon EMR on EKS** (API: `emr-containers`). Incluye **dos modelos de envío de trabajos** (StartJobRun y Spark Operator) y una opción para **trabajo interactivo** con endpoints (EMR Studio). citeturn0search23turn2view0
+Esta guía explica, paso a paso, cómo **desplegar y ejecutar Apache Spark en Amazon EKS usando Amazon EMR on EKS** (API: `emr-containers`). Incluye **dos modelos de envío de trabajos** (StartJobRun y Spark Operator) y una opción para **trabajo interactivo** con endpoints (EMR Studio). 
 
 ---
 
 ## 1) ¿Qué es EMR on EKS y cuándo elegirlo?
 
-**Amazon EMR on EKS** permite correr runtimes de EMR (por ejemplo Spark) **sobre un clúster EKS existente**, usando un **namespace de Kubernetes** como “unidad” lógica (un *virtual cluster*). citeturn2view0turn0search23
+**Amazon EMR on EKS** permite correr runtimes de EMR (por ejemplo Spark) **sobre un clúster EKS existente**, usando un **namespace de Kubernetes** como “unidad” lógica (un *virtual cluster*). 
 
 **Cuándo conviene**
 - Ya usas Kubernetes (EKS) y quieres **un pool compartido** para cargas batch, streaming, ML, etc.
@@ -14,18 +14,18 @@ Esta guía explica, paso a paso, cómo **desplegar y ejecutar Apache Spark en Am
 - Quieres evitar clústeres EMR “clásicos” por aplicación y **aprovechar capacidad compartida**.
 
 **Modelos de ejecución (elige uno o usa ambos)**
-1. **StartJobRun (API/CLI `emr-containers`)**: ideal para batch y orquestación (Airflow, Step Functions, pipelines). citeturn1view2turn4search7
-2. **Spark Operator**: ideal para GitOps y operación nativa en Kubernetes (`kubectl apply` con CRD `SparkApplication`). Requiere EMR **6.10.0 o superior**. citeturn1view3turn5view1
+1. **StartJobRun (API/CLI `emr-containers`)**: ideal para batch y orquestación (Airflow, Step Functions, pipelines). 
+2. **Spark Operator**: ideal para GitOps y operación nativa en Kubernetes (`kubectl apply` con CRD `SparkApplication`). Requiere EMR **6.10.0 o superior**. 
 
 ---
 
-## 2) Conceptos clave (2 minutos)
+## 2) Conceptos clave 
 
 - **EKS Cluster**: tu clúster Kubernetes.
 - **Namespace**: aislamiento lógico dentro del clúster.
-- **Virtual cluster (EMR on EKS)**: mapeo 1:1 entre un **namespace** y un “cluster” lógico para EMR. citeturn2view0
-- **Job execution role (IAM)**: rol que asumen los pods (driver y executors) para acceder a S3, CloudWatch, Glue, etc. citeturn3view0turn3view1
-- **IRSA**: IAM Roles for Service Accounts, para entregar credenciales a pods sin llaves estáticas. citeturn1view4turn0search14
+- **Virtual cluster (EMR on EKS)**: mapeo 1:1 entre un **namespace** y un “cluster” lógico para EMR. 
+- **Job execution role (IAM)**: rol que asumen los pods (driver y executors) para acceder a S3, CloudWatch, Glue, etc. 
+- **IRSA**: IAM Roles for Service Accounts, para entregar credenciales a pods sin llaves estáticas. 
 
 ---
 
@@ -33,10 +33,10 @@ Esta guía explica, paso a paso, cómo **desplegar y ejecutar Apache Spark en Am
 
 ### Requisitos mínimos recomendados
 - **EKS** operativo (con nodegroup).
-- Instancias de nodos con recursos suficientes; AWS recomienda **m5.xlarge o superior** para evitar fallas por falta de recursos en demos iniciales. citeturn1view0
-- **AWS CLI** actualizado (en varias secciones AWS indica usar la versión más reciente). citeturn1view4turn7view0
+- Instancias de nodos con recursos suficientes; AWS recomienda **m5.xlarge o superior** para evitar fallas por falta de recursos en demos iniciales. 
+- **AWS CLI** actualizado (en varias secciones AWS indica usar la versión más reciente).
 - **kubectl** y **eksctl**.
-- Para Spark Operator: **Helm**. citeturn5view0turn5view1
+- Para Spark Operator: **Helm**.
 
 ### Variables que vas a usar
 Ajusta estos valores y reutilízalos en comandos y archivos:
@@ -63,8 +63,7 @@ kubectl create namespace "${EMR_NAMESPACE}"
 
 ### Paso 4.2: Habilita el acceso del clúster para EMR on EKS (AuthN/AuthZ)
 
-AWS ofrece dos rutas. La recomendada para **nuevos virtual clusters** es usar **EKS Cluster Access Management (CAM) con Access Entries**; además, AWS indica que el `aws-auth` ConfigMap está en desuso. citeturn7view0turn7view1
-
+AWS ofrece dos rutas. La recomendada para **nuevos virtual clusters** es usar **EKS Cluster Access Management (CAM) con Access Entries**; además, AWS indica que el `aws-auth` ConfigMap está en desuso. 
 #### Opción A (recomendada): EKS Access Entry (CAM) para nuevos virtual clusters
 
 Prerrequisitos (según AWS):
@@ -178,8 +177,7 @@ aws iam put-role-policy \
 
 ### Paso 4.5: Actualiza la trust policy del job execution role para IRSA
 
-Cuando usas IRSA, debes crear una relación de confianza entre el execution role y el service account administrado por EMR, que se crea automáticamente al enviar jobs. AWS provee un comando directo para esto: citeturn2view2turn3view1
-
+Cuando usas IRSA, debes crear una relación de confianza entre el execution role y el service account administrado por EMR, que se crea automáticamente al enviar jobs. AWS provee un comando directo para esto: 
 ```bash
 aws emr-containers update-role-trust-policy \
   --cluster-name "${EKS_CLUSTER_NAME}" \
@@ -190,7 +188,7 @@ aws emr-containers update-role-trust-policy \
 
 ### Paso 4.6: Registra el namespace como Virtual Cluster en EMR
 
-Un virtual cluster es un namespace registrado en EMR. citeturn2view0
+Un virtual cluster es un namespace registrado en EMR. 
 
 ```bash
 aws emr-containers create-virtual-cluster \
@@ -211,11 +209,11 @@ aws emr-containers list-virtual-clusters --region "${AWS_REGION}"
 
 ### Paso 4.7: Envía un job Spark (PySpark) con StartJobRun
 
-AWS muestra dos formas: con `--cli-input-json` o pasando parámetros directamente. citeturn1view2
+AWS muestra dos formas: con `--cli-input-json` o pasando parámetros directamente. 
 
 #### Ejemplo A: con archivo JSON (recomendado)
 
-Crea `start-job-run-request.json` (plantilla basada en AWS): citeturn1view2
+Crea `start-job-run-request.json` (plantilla basada en AWS): 
 
 ```json
 {
@@ -250,8 +248,8 @@ Crea `start-job-run-request.json` (plantilla basada en AWS): citeturn1view
 ```
 
 Notas:
-- El `entryPoint` del ejemplo anterior usa el script público de AWS en `s3://REGION.elasticmapreduce/...`. citeturn1view0
-- `persistentAppUI` habilita UI persistente (útil para depurar). citeturn1view2
+- El `entryPoint` del ejemplo anterior usa el script público de AWS en `s3://REGION.elasticmapreduce/...`. 
+- `persistentAppUI` habilita UI persistente (útil para depurar). 
 
 Ejecuta el job:
 
@@ -263,7 +261,7 @@ aws emr-containers start-job-run \
 
 ### Paso 4.8: Monitorea y administra job runs
 
-AWS documenta estos comandos para gestionar jobs por CLI: citeturn4search7turn4search0
+AWS documenta estos comandos para gestionar jobs por CLI:
 
 ```bash
 # Listar jobs
@@ -288,11 +286,11 @@ aws emr-containers cancel-job-run \
 
 ## 5) Opción alternativa: Spark Operator (modelo Kubernetes nativo)
 
-Amazon EMR soporta el **Spark Operator** como modelo de envío en **EMR 6.10.0 o superior**. citeturn1view3turn5view0
+Amazon EMR soporta el **Spark Operator** como modelo de envío en **EMR 6.10.0 o superior**. 
 
 ### Paso 5.1: Instala prerrequisitos (Helm) y autentica Helm contra ECR
 
-AWS indica que debes autenticar Helm al registry ECR y luego instalar el chart del operador desde un OCI registry. citeturn5view1
+AWS indica que debes autenticar Helm al registry ECR y luego instalar el chart del operador desde un OCI registry. 
 
 ```bash
 # Reemplaza region-id y ECR-registry-account según tu región
@@ -303,7 +301,7 @@ aws ecr get-login-password --region region-id | helm registry login \
 
 ### Paso 5.2: Instala el Spark Operator con Helm
 
-Ejemplo de AWS (ajusta región y versión del chart; AWS sugiere derivarla del release label): citeturn5view1
+Ejemplo de AWS (ajusta región y versión del chart; AWS sugiere derivarla del release label): 
 
 ```bash
 helm install spark-operator-demo \
@@ -337,10 +335,10 @@ kubectl describe sparkapplication mi-app --namespace spark-operator
 
 ## 6) Trabajo interactivo: EMR Studio con Interactive Endpoints (opcional)
 
-Un **interactive endpoint** conecta EMR Studio con tu virtual cluster para trabajo interactivo. citeturn0search11turn1view5
+Un **interactive endpoint** conecta EMR Studio con tu virtual cluster para trabajo interactivo.
 
 - Requiere EMR release **6.7.0 o superior**.
-- El tipo soportado es `JUPYTER_ENTERPRISE_GATEWAY`. citeturn1view5
+- El tipo soportado es `JUPYTER_ENTERPRISE_GATEWAY`. 
 
 Ejemplo (AWS):
 
@@ -354,14 +352,14 @@ aws emr-containers create-managed-endpoint \
   --region "${AWS_REGION}"
 ```
 
-AWS indica que este comando crea un certificado autofirmado para comunicación HTTPS entre EMR Studio y el servidor del endpoint. citeturn1view5
+AWS indica que este comando crea un certificado autofirmado para comunicación HTTPS entre EMR Studio y el servidor del endpoint.
 
 ---
 
 ## 7) Costos y sizing: dos recordatorios útiles
 
-- En Spark Operator, AWS especifica que el cálculo de precio en EKS se basa en **vCPU y memoria consumidos**, incluyendo driver y executors, medido desde que se descarga la imagen hasta que termina el pod (redondeado al segundo). citeturn1view3
-- Para pruebas iniciales, AWS recomienda nodos con recursos suficientes (ejemplo: **m5.xlarge o superior**) para evitar fallas por recursos. citeturn1view0
+- En Spark Operator, AWS especifica que el cálculo de precio en EKS se basa en **vCPU y memoria consumidos**, incluyendo driver y executors, medido desde que se descarga la imagen hasta que termina el pod (redondeado al segundo). 
+- Para pruebas iniciales, AWS recomienda nodos con recursos suficientes (ejemplo: **m5.xlarge o superior**) para evitar fallas por recursos. 
 
 ---
 
@@ -379,11 +377,11 @@ AWS indica que este comando crea un certificado autofirmado para comunicación H
 
 ## 9) Referencias principales
 
-- Getting started con EMR on EKS (virtual cluster y ejemplo wordcount). citeturn1view0
-- Virtual clusters: crear, listar, describir. citeturn2view0
-- IRSA en EMR on EKS. citeturn1view4turn0search14
-- Job execution role y trust policy (incluye comando `update-role-trust-policy`). citeturn3view0turn2view2
-- StartJobRun y JSON de ejemplo. citeturn1view2
-- Gestión de job runs por CLI (list, describe, cancel). citeturn4search7turn4search0
-- Spark Operator: setup y getting started. citeturn5view0turn5view1
-- Cluster access: CAM recomendado y nota sobre `aws-auth` en desuso. citeturn7view0turn7view1
+- Getting started con EMR on EKS (virtual cluster y ejemplo wordcount). 
+- Virtual clusters: crear, listar, describir. 
+- IRSA en EMR on EKS. 
+- Job execution role y trust policy (incluye comando `update-role-trust-policy`). 
+- StartJobRun y JSON de ejemplo. 
+- Gestión de job runs por CLI (list, describe, cancel). 
+- Spark Operator: setup y getting started. 
+- Cluster access: CAM recomendado y nota sobre `aws-auth` en desuso. 
