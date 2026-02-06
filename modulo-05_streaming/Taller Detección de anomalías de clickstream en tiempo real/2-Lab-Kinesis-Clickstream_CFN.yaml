@@ -169,7 +169,7 @@ Resources:
     Properties:
       Count: 1
       Handle: !Ref BuildCompleteWaitHandle
-      Timeout: "900"
+      Timeout: "1800"
 
   BuildCompleteWaitHandle:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -183,7 +183,7 @@ Resources:
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_LARGE
-        Image: aws/codebuild/java:openjdk-11
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:4.0
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -194,7 +194,7 @@ Resources:
               commands:
                 - 'cd data-engineering-for-aws-immersion-day-* || :'
                 - 'cd AnomalyDetection/RandomCutForest || :'
-                - mvn clean package --B -Dflink.version=${FlinkVersion}
+                - mvn clean package --B -Dflink.version=${FlinkVersion} -Dhttps.protocols=TLSv1.2
 
           artifacts:
             files:
